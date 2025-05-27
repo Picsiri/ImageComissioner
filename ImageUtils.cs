@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -62,6 +63,10 @@ namespace ImageComissioner
             using (var img = Image.FromFile(path))
             {
                 int width, height;
+                if(path.Contains("0005"))
+                {
+                    Debug.WriteLine($"Loading image");
+                }
 
                 // Maintain aspect ratio
                 float scale = Math.Min((float)maxSize / img.Width, (float)maxSize / img.Height);

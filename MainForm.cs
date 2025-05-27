@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -40,13 +41,14 @@ namespace ImageComissioner
 
         String previewPath = "";
 
-        int previousThumbWidth = 0;
+        int previousThumbPanelWidth = 0;
+        int thumbSquare = 0;
         int activeIndex = 0;
 
         public MainForm()
         {
             InitializeComponent();
-            previousThumbWidth = splitContainerThumbMain.Panel1.Width;
+            ResizeThumbnails();
 
 #if DEBUG
             /*
@@ -72,7 +74,7 @@ namespace ImageComissioner
         {
             //if (_imageCache.TryGetValue(index, out Image? value)) return;
 
-            var thumb = ImageUtils.GetThumbnail(taggedImages[index].ImagePath, previousThumbWidth);
+            var thumb = ImageUtils.GetThumbnail(taggedImages[index].ImagePath, thumbSquare);
             if (_imageCache.Count >= _imageCacheLimit)
             {
                 var keyToRemove = _imageCache.Keys.First();
@@ -113,7 +115,11 @@ namespace ImageComissioner
 
             // Determine item index and key
             int index = e.ItemIndex;
-            string key = index.ToString();
+
+            if (index == 4)
+            {
+                Debug.WriteLine($"Loading image");
+            }
 
             // Select the image to draw
             Image? img = null;
@@ -138,10 +144,10 @@ namespace ImageComissioner
             // Draw image
             if (img != null)
             {
-                int imgX = bounds.X + (bounds.Width - previousThumbWidth) / 2;
-                int imgY = bounds.Y + 4;
+                int imgX = bounds.X + (bounds.Width - img.Width) / 2;
+                int imgY = bounds.Y + (bounds.Height - img.Height) / 2;
 
-                g.DrawImage(img, new Rectangle(imgX, imgY, previousThumbWidth, previousThumbWidth));
+                g.DrawImage(img, new Rectangle(imgX, imgY, img.Width, img.Height));
             }
             else
             {
@@ -300,7 +306,12 @@ namespace ImageComissioner
         private void ResizeThumbnails()
         {
             int size = splitContainerThumbMain.Panel1.Width - thumbMargin;
-            previousThumbWidth = Math.Max(Math.Min(256, size), 10);
+            thumbSquare = Math.Max(Math.Min(256, size), 10);
+            
+            listViewThumb.LargeImageList = new ImageList
+            {
+                ImageSize = new Size(thumbSquare, thumbSquare)
+            };
         }
 
         private void RegenerateTaggedImagesArray()
@@ -362,7 +373,7 @@ namespace ImageComissioner
         {
             if (sender is SplitContainer splitContainer)
             {
-                if (splitContainer.Panel1.Width != previousThumbWidth)
+                if (splitContainer.Panel1.Width != previousThumbPanelWidth)
                 {
                     ResizeThumbnails();
                 }
