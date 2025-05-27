@@ -29,7 +29,7 @@ namespace ImageComissioner
         TaggedImage[] taggedImages = [];
 
         private ConcurrentDictionary<int, Image> _imageCache = [];
-        private int _imageCacheLimit = 100;
+        private int _imageCacheLimit = 200;
         List<int> beingLoaded = [];
 
         TaggedImage? editedImage = null;
@@ -69,20 +69,41 @@ namespace ImageComissioner
 
 #endif
         }
+        private void FlushCache()
+        {
+            int referenceIndex = 0;
+            if (editedImage != null) referenceIndex = editedImage.Index;
+
+            // Create a sorted list of indexes, ordered by descending distance to referenceIndex
+            var keysToRemove = _imageCache.Keys
+                .OrderByDescending(key => Math.Abs(key - referenceIndex)) // Sort by distance
+                .Take(_imageCacheLimit / 2) // Select the first x farthest items
+                .ToList();
+
+            foreach (var key in keysToRemove)
+            {
+                _imageCache[key].Dispose();
+                _imageCache.TryRemove(key, out _);
+            }
+
+            GC.Collect(); // Free memory after bulk removal
+            Debug.WriteLine($"Removed {_imageCacheLimit / 2} farthest images from index {referenceIndex}. Cache size: {_imageCache.Count}");
+        }
 
         private void CacheThumbnail(int index)
         {
-            //if (_imageCache.TryGetValue(index, out Image? value)) return;
-
             var thumb = ImageUtils.GetThumbnail(taggedImages[index].ImagePath, thumbSquare);
             if (_imageCache.Count >= _imageCacheLimit)
             {
-                var keyToRemove = _imageCache.Keys.First();
-                _imageCache[keyToRemove].Dispose();
-                _imageCache.TryRemove(keyToRemove, out Image? valueTwo);
+                FlushCache();
             }
             _imageCache.TryAdd(index, thumb);
             Debug.WriteLine($"Image {index} added to cache");
+
+            listViewThumb.Invoke(() =>
+            {
+                listViewThumb.Invalidate(listViewThumb.Items[index].Bounds);
+            });
         }
 
         private void listViewThumb_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
