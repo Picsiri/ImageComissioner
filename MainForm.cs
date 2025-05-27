@@ -39,8 +39,6 @@ namespace ImageComissioner
         bool recurse = false;
         bool zipit = false;
 
-        String previewPath = "";
-
         int previousThumbPanelWidth = 0;
         int thumbSquare = 0;
         int activeIndex = 0;
@@ -245,21 +243,11 @@ namespace ImageComissioner
             }
         }
 
-        private void listViewThumb_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-            if (listViewThumb.SelectedIndices.Count > 0)
-            {
-                int selectedIndex = listViewThumb.SelectedIndices[0];
-                SetActiveImage(selectedIndex);
-            }
-        }
-
         private void SetActiveImage(int index)
         {
             SaveTagsToEditedImage();
 
-            if (activeIndex >= 0 && activeIndex < taggedImages.Length)
+            if (index >= 0 && index < taggedImages.Length)
             {
                 activeIndex = index;
                 editedImage = taggedImages[index];
@@ -301,7 +289,7 @@ namespace ImageComissioner
             {
                 if (control is TagButton button)
                 {
-                    if (editedImage.Tags.Contains(button.Text))
+                    if (editedImage!.Tags.Contains(button.Text))
                     {
                         button.SelectTag();
                         selectedTags++;
@@ -328,7 +316,7 @@ namespace ImageComissioner
         {
             int size = splitContainerThumbMain.Panel1.Width - thumbMargin;
             thumbSquare = Math.Max(Math.Min(256, size), 10);
-            
+
             listViewThumb.LargeImageList = new ImageList
             {
                 ImageSize = new Size(thumbSquare, thumbSquare)
@@ -427,21 +415,6 @@ namespace ImageComissioner
 
                     RegenerateTagButtons();
                 }
-            }
-        }
-
-        private void MainForm_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            return;
-            if (e.KeyCode == Keys.Left || e.KeyCode == Keys.Up)
-            {
-                if (activeIndex > 0) // Ensure index doesn't go below zero
-                    SetActiveImage(activeIndex - 1);
-            }
-            else if (e.KeyCode == Keys.Right || e.KeyCode == Keys.Down)
-            {
-                if (activeIndex < taggedImages.Count() - 1) // Prevent going out of bounds
-                    SetActiveImage(activeIndex + 1);
             }
         }
 
@@ -608,6 +581,37 @@ namespace ImageComissioner
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (ProjectOpen) saveToolStripMenuItem_Click(sender, e);
+        }
+
+        private void listViewThumb_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (listViewThumb.SelectedIndices.Count > 0)
+            {
+                int selectedIndex = listViewThumb.SelectedIndices[0];
+                SetActiveImage(selectedIndex);
+            }
+        }
+
+        private void listViewThumb_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Left /*|| e.KeyCode == Keys.Up*/)
+            {
+                SetActiveImage(activeIndex - 1);
+                listViewThumb.SelectedIndices.Clear();
+                listViewThumb.Items[activeIndex].Selected = true;
+                listViewThumb.Items[activeIndex].Focused = true;
+                listViewThumb.EnsureVisible(activeIndex);
+
+            }
+            else if (e.KeyCode == Keys.Right /*|| e.KeyCode == Keys.Down*/)
+            {
+                SetActiveImage(activeIndex + 1);
+                listViewThumb.SelectedIndices.Clear();
+                listViewThumb.Items[activeIndex].Selected = true;
+                listViewThumb.Items[activeIndex].Focused = true;
+                listViewThumb.EnsureVisible(activeIndex);
+
+            }
         }
     }
 }
