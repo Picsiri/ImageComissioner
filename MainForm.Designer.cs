@@ -85,10 +85,10 @@
             // listViewThumb
             // 
             listViewThumb.Dock = DockStyle.Fill;
-            listViewThumb.Enabled = false;
             listViewThumb.Location = new Point(0, 0);
             listViewThumb.MultiSelect = false;
             listViewThumb.Name = "listViewThumb";
+            listViewThumb.OwnerDraw = true;
             listViewThumb.ShowGroups = false;
             listViewThumb.Size = new Size(256, 536);
             listViewThumb.TabIndex = 0;
@@ -114,7 +114,7 @@
             // 
             splitContainerPreviewTags.Panel2.Controls.Add(panelTag);
             splitContainerPreviewTags.Size = new Size(1039, 536);
-            splitContainerPreviewTags.SplitterDistance = 752;
+            splitContainerPreviewTags.SplitterDistance = 750;
             splitContainerPreviewTags.SplitterWidth = 5;
             splitContainerPreviewTags.TabIndex = 0;
             splitContainerPreviewTags.TabStop = false;
@@ -125,7 +125,7 @@
             labelImageName.AutoSize = true;
             labelImageName.BackColor = SystemColors.Control;
             labelImageName.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            labelImageName.Location = new Point(336, 8);
+            labelImageName.Location = new Point(335, 8);
             labelImageName.Name = "labelImageName";
             labelImageName.Size = new Size(142, 21);
             labelImageName.TabIndex = 1;
@@ -138,7 +138,7 @@
             pictureBoxPreview.Dock = DockStyle.Fill;
             pictureBoxPreview.Location = new Point(0, 0);
             pictureBoxPreview.Name = "pictureBoxPreview";
-            pictureBoxPreview.Size = new Size(752, 536);
+            pictureBoxPreview.Size = new Size(750, 536);
             pictureBoxPreview.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxPreview.TabIndex = 0;
             pictureBoxPreview.TabStop = false;
@@ -154,7 +154,7 @@
             panelTag.Name = "panelTag";
             panelTag.RowCount = 1;
             panelTag.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            panelTag.Size = new Size(282, 536);
+            panelTag.Size = new Size(284, 536);
             panelTag.TabIndex = 0;
             // 
             // menuStrip

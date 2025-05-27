@@ -1,4 +1,7 @@
 using ImageCommissioner;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO.Compression;
@@ -12,27 +15,32 @@ namespace ImageComissioner
 {
     public partial class MainForm : Form
     {
-        private const string allNoneText = "All/None";
-        private const int thumbMargin = 70;
+        private static string allNoneText = "All/None";
+        private static int thumbMargin = 70;
+        private static string placeholderKey = "loading";
+        private static ListViewItem loadingItem = new ListViewItem($"Image {placeholderKey}", placeholderKey);
 
         private bool ProjectOpen = false;
         private string ProjectSavePath = "";
 
         List<String> allTags = new List<String>();
-        TaggedImage[] taggedImages;
+        TaggedImage[] taggedImages = [];
         ImageList imageList = new ImageList();
+        List<String> beingLoaded = [];
 
-        private Dictionary<int, Image> _cache = [];
-        private int _cacheLimit = 500;
+        private ConcurrentDictionary<int, Image> _imageCache = [];
+        private int _imageCacheLimit = 100;
 
-        TaggedImage editedImage;
+        private ConcurrentDictionary<int, ListViewItem> _LVICache = [];
 
-        String sourcePath;
-        String destinationPath;
-        bool recurse;
-        bool zipit;
+        TaggedImage? editedImage = null;
 
-        String previewPath;
+        String sourcePath = "";
+        String destinationPath = "";
+        bool recurse = false;
+        bool zipit = false;
+
+        String previewPath = "";
 
         int previousThumbWidth = 0;
         int activeIndex = 0;
@@ -41,9 +49,11 @@ namespace ImageComissioner
         {
             InitializeComponent();
             previousThumbWidth = splitContainerThumbMain.Panel1.Width;
+            imageList.Images.Add(placeholderKey, SystemIcons.Information.ToBitmap());
             listViewThumb.LargeImageList = imageList;
 
 #if DEBUG
+            /*
             allTags.AddRange(["Woodcuts", "Weers", "Barnicles", "Buborek", "Younglings"]);
 
             RegenerateTagButtons();
@@ -56,69 +66,67 @@ namespace ImageComissioner
             SetActiveImage(0);
 
             destinationPath = @"D:\Projects\ImageComissioner\debugImages\destination";
-
+            */
 #else
 
 #endif
         }
 
-        private async Task<Image> LoadThumbnailAsync(int index)
+        private Image LoadCachedThumbnail(int index)
         {
-            if (_cache.ContainsKey(index)) return _cache[index];
-
-            return await Task.Run(() =>
+            if (_imageCache.TryGetValue(index, out Image? value))
             {
-                var thumb = ImageUtils.GetThumbnail(taggedImages[index].ImagePath, previousThumbWidth);
-                if (_cache.Count >= _cacheLimit)
-                {
-                    var keyToRemove = _cache.Keys.First();
-                    _cache[keyToRemove].Dispose();
-                    _cache.Remove(keyToRemove);
-                }
-                _cache[index] = thumb;
-                return thumb;
-            });
+                return value;
+            }
+
+            var thumb = ImageUtils.GetThumbnail(taggedImages[index].ImagePath, previousThumbWidth);
+            if (_imageCache.Count >= _imageCacheLimit)
+            {
+                var keyToRemove = _imageCache.Keys.First();
+                _imageCache[keyToRemove].Dispose();
+                _imageCache.TryRemove(keyToRemove, out Image? valueTwo);
+            }
+            _imageCache.TryAdd(index, thumb);
+            return thumb;
         }
 
         private void listViewThumb_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
+            Debug.WriteLine($"RetrieveVirtualItem called for index {e.ItemIndex}");
+            string key = e.ItemIndex.ToString();
 
-            if (!imageList.Images.ContainsKey(e.ItemIndex.ToString()))
+            // Thumbnail is already loaded
+            if (imageList.Images.ContainsKey(key))
             {
-                var item = new ListViewItem($"Image {e.ItemIndex}");
-                e.Item = item;
+                _LVICache.TryGetValue(e.ItemIndex, out ListViewItem? value);
+                e.Item = value;
+                return;
+            }
 
-                Task.Run(async ()  =>
+            // Show placeholder immediately
+            e.Item = loadingItem;
+
+            if (e.ItemIndex > taggedImages.Length) return;
+
+            if (beingLoaded.Contains(key)) return;
+            beingLoaded.Add(key);
+
+            _LVICache[e.ItemIndex] = new ListViewItem($"Image {e.ItemIndex}");
+
+
+            // Launch async task to load the real thumbnail
+            Task.Run(() =>
+            {
+                Image thumb = LoadCachedThumbnail(e.ItemIndex);
+
+                listViewThumb.Invoke((Action)(() =>
                 {
-                    if (e.ItemIndex >= taggedImages.Length) return;
+                    imageList.Images.Add(key, thumb);
+                    beingLoaded.Remove(key);
+                    Debug.WriteLine($"Image with key {key} added to imageList");
+                }));
+            });
 
-                    // Load thumbnail async, then add it to the ImageList
-                    Image thumb = await LoadThumbnailAsync(e.ItemIndex);
-                    if (thumb == null) return;
-
-                    imageList.Images.Add(e.ItemIndex.ToString(), thumb);
-                    listViewThumb.RedrawItems(e.ItemIndex, e.ItemIndex, false);
-                });
-            }
-            else
-            {
-                var item = new ListViewItem($"Image {e.ItemIndex}", e.ItemIndex);
-                e.Item = item;
-            }
-
-        }
-
-        private void ClearUnusedImages()
-        {
-            int maxVisibleItems = listViewThumb.ClientSize.Height / previousThumbWidth + 5;
-
-            foreach (var key in _cache.Keys.ToList())
-            {
-                if (key < listViewThumb.TopItem.Index - maxVisibleItems || key > listViewThumb.TopItem.Index + maxVisibleItems)
-                {
-                    _cache.Remove(key);
-                }
-            }
         }
 
         private void ComissionImages()
@@ -265,8 +273,10 @@ namespace ImageComissioner
             previousThumbWidth = Math.Max(Math.Min(256, size), 10);
 
             imageList.ImageSize = new Size(previousThumbWidth, previousThumbWidth);
-
+            
             listViewThumb.VirtualListSize = taggedImages.Length;
+
+            //listViewThumb.VirtualListSize = taggedImages.Length;
         }
 
         private void RegenerateTaggedImagesArray()
@@ -275,7 +285,6 @@ namespace ImageComissioner
 
             string[] imagePaths = ImageUtils.GetImagePaths(sourcePath, recurse);
             taggedImages = imagePaths.Select(path => new TaggedImage(path, [], index++)).ToArray();
-            listViewThumb.VirtualListSize = taggedImages.Length;
             listViewThumb.Enabled = true;
         }
 
@@ -321,7 +330,6 @@ namespace ImageComissioner
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
         }
 
 
@@ -546,6 +554,52 @@ namespace ImageComissioner
         private void listViewThumb_DrawItem(object sender, DrawListViewItemEventArgs e)
         {
 
+            Graphics g = e.Graphics;
+            Rectangle bounds = e.Bounds;
+
+            // Determine item index and key
+            int index = e.ItemIndex;
+            string key = index.ToString();
+
+            // Select the image to draw
+            Image? img = null;
+            if (imageList.Images.ContainsKey(key))
+            {
+                img = imageList.Images[key];
+            }
+            else if (imageList.Images.ContainsKey("loading"))
+            {
+                img = imageList.Images["loading"];
+            }
+
+            // Draw background
+            if (e.Item.Selected)
+            {
+                g.FillRectangle(SystemBrushes.Highlight, bounds);
+            }
+            else
+            {
+                g.FillRectangle(SystemBrushes.Window, bounds);
+            }
+
+            // Draw image
+            if (img != null)
+            {
+                int imgX = bounds.X + (bounds.Width - imageList.ImageSize.Width) / 2;
+                int imgY = bounds.Y + 4;
+
+                g.DrawImage(img, new Rectangle(imgX, imgY, imageList.ImageSize.Width, imageList.ImageSize.Height));
+            }
+
+            // Draw text
+            string label = $"Image {index}";
+            SizeF textSize = g.MeasureString(label, listViewThumb.Font);
+            int textX = bounds.X + (bounds.Width - (int)textSize.Width) / 2;
+            int textY = bounds.Bottom - (int)textSize.Height - 4;
+
+            TextRenderer.DrawText(g, label, listViewThumb.Font,
+                new Point(textX, textY),
+                e.Item.Selected ? SystemColors.HighlightText : SystemColors.WindowText);
         }
     }
 }

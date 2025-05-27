@@ -57,13 +57,19 @@ namespace ImageComissioner
                 }
             }
         }
-        public static Image GetThumbnail(string path, int size)
+        public static Image GetThumbnail(string path, int maxSize)
         {
             using (var img = Image.FromFile(path))
             {
-                return img.GetThumbnailImage(size, size, () => false, IntPtr.Zero);
+                int width, height;
+
+                // Maintain aspect ratio
+                float scale = Math.Min((float)maxSize / img.Width, (float)maxSize / img.Height);
+                width = (int)(img.Width * scale);
+                height = (int)(img.Height * scale);
+
+                return img.GetThumbnailImage(width, height, () => false, IntPtr.Zero);
             }
         }
-
     }
 }
