@@ -9,8 +9,9 @@ namespace ImageCommissioner
         private static readonly Color DeselectedColor = SystemColors.Control;
 
         public bool IsSelected { get; private set; } = false; // Store selection state
+        public bool IsAllTag { get; private set; } = false;
 
-        public TagButton(string tagName)
+        public TagButton(string tagName, bool isalltag = false)
         {
             Text = tagName;
             Font = new Font("Arial", 12, FontStyle.Bold);
@@ -25,6 +26,8 @@ namespace ImageCommissioner
 
             // Toggle selection on click
             Click += (s, e) => ToggleTag();
+
+            IsAllTag = isalltag;
         }
 
         private void ToggleTag()

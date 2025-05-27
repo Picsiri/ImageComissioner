@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             splitContainerThumbMain = new SplitContainer();
-            panelThumb = new FlowLayoutPanel();
+            listViewThumb = new ListView();
             splitContainerPreviewTags = new SplitContainer();
             labelImageName = new Label();
             pictureBoxPreview = new PictureBox();
@@ -39,6 +39,7 @@
             newToolStripMenuItem = new ToolStripMenuItem();
             openToolStripMenuItem = new ToolStripMenuItem();
             saveToolStripMenuItem = new ToolStripMenuItem();
+            saveProjectAsToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             editTagsToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator2 = new ToolStripSeparator();
@@ -68,12 +69,12 @@
             // 
             // splitContainerThumbMain.Panel1
             // 
-            splitContainerThumbMain.Panel1.Controls.Add(panelThumb);
+            splitContainerThumbMain.Panel1.Controls.Add(listViewThumb);
             // 
             // splitContainerThumbMain.Panel2
             // 
             splitContainerThumbMain.Panel2.Controls.Add(splitContainerPreviewTags);
-            splitContainerThumbMain.Size = new Size(1300, 557);
+            splitContainerThumbMain.Size = new Size(1300, 536);
             splitContainerThumbMain.SplitterDistance = 256;
             splitContainerThumbMain.SplitterWidth = 5;
             splitContainerThumbMain.TabIndex = 0;
@@ -81,19 +82,21 @@
             splitContainerThumbMain.SplitterMoved += splitContainerThumbMain_SplitterMoved;
             splitContainerThumbMain.SizeChanged += settingsToolStripMenuItem_Click;
             // 
-            // panelThumb
+            // listViewThumb
             // 
-            panelThumb.AutoScroll = true;
-            panelThumb.AutoSize = true;
-            panelThumb.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            panelThumb.BackColor = SystemColors.Control;
-            panelThumb.Dock = DockStyle.Fill;
-            panelThumb.FlowDirection = FlowDirection.TopDown;
-            panelThumb.Location = new Point(0, 0);
-            panelThumb.Name = "panelThumb";
-            panelThumb.Size = new Size(256, 557);
-            panelThumb.TabIndex = 0;
-            panelThumb.WrapContents = false;
+            listViewThumb.Dock = DockStyle.Fill;
+            listViewThumb.Enabled = false;
+            listViewThumb.Location = new Point(0, 0);
+            listViewThumb.MultiSelect = false;
+            listViewThumb.Name = "listViewThumb";
+            listViewThumb.ShowGroups = false;
+            listViewThumb.Size = new Size(256, 536);
+            listViewThumb.TabIndex = 0;
+            listViewThumb.UseCompatibleStateImageBehavior = false;
+            listViewThumb.VirtualMode = true;
+            listViewThumb.DrawItem += listViewThumb_DrawItem;
+            listViewThumb.RetrieveVirtualItem += listViewThumb_RetrieveVirtualItem;
+            listViewThumb.SelectedIndexChanged += listViewThumb_SelectedIndexChanged;
             // 
             // splitContainerPreviewTags
             // 
@@ -110,8 +113,8 @@
             // splitContainerPreviewTags.Panel2
             // 
             splitContainerPreviewTags.Panel2.Controls.Add(panelTag);
-            splitContainerPreviewTags.Size = new Size(1039, 557);
-            splitContainerPreviewTags.SplitterDistance = 779;
+            splitContainerPreviewTags.Size = new Size(1039, 536);
+            splitContainerPreviewTags.SplitterDistance = 752;
             splitContainerPreviewTags.SplitterWidth = 5;
             splitContainerPreviewTags.TabIndex = 0;
             splitContainerPreviewTags.TabStop = false;
@@ -122,7 +125,7 @@
             labelImageName.AutoSize = true;
             labelImageName.BackColor = SystemColors.Control;
             labelImageName.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            labelImageName.Location = new Point(349, 8);
+            labelImageName.Location = new Point(336, 8);
             labelImageName.Name = "labelImageName";
             labelImageName.Size = new Size(142, 21);
             labelImageName.TabIndex = 1;
@@ -135,7 +138,7 @@
             pictureBoxPreview.Dock = DockStyle.Fill;
             pictureBoxPreview.Location = new Point(0, 0);
             pictureBoxPreview.Name = "pictureBoxPreview";
-            pictureBoxPreview.Size = new Size(779, 557);
+            pictureBoxPreview.Size = new Size(752, 536);
             pictureBoxPreview.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxPreview.TabIndex = 0;
             pictureBoxPreview.TabStop = false;
@@ -151,7 +154,7 @@
             panelTag.Name = "panelTag";
             panelTag.RowCount = 1;
             panelTag.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            panelTag.Size = new Size(255, 557);
+            panelTag.Size = new Size(282, 536);
             panelTag.TabIndex = 0;
             // 
             // menuStrip
@@ -165,7 +168,7 @@
             // 
             // fiToolStripMenuItem
             // 
-            fiToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { newToolStripMenuItem, openToolStripMenuItem, saveToolStripMenuItem, toolStripSeparator1, editTagsToolStripMenuItem, toolStripSeparator2, comissionToolStripMenuItem });
+            fiToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { newToolStripMenuItem, openToolStripMenuItem, saveToolStripMenuItem, saveProjectAsToolStripMenuItem, toolStripSeparator1, editTagsToolStripMenuItem, toolStripSeparator2, comissionToolStripMenuItem });
             fiToolStripMenuItem.Name = "fiToolStripMenuItem";
             fiToolStripMenuItem.Size = new Size(37, 20);
             fiToolStripMenuItem.Text = "File";
@@ -173,42 +176,52 @@
             // newToolStripMenuItem
             // 
             newToolStripMenuItem.Name = "newToolStripMenuItem";
-            newToolStripMenuItem.Size = new Size(143, 22);
+            newToolStripMenuItem.Size = new Size(161, 22);
             newToolStripMenuItem.Text = "New project";
+            newToolStripMenuItem.Click += newToolStripMenuItem_Click;
             // 
             // openToolStripMenuItem
             // 
             openToolStripMenuItem.Name = "openToolStripMenuItem";
-            openToolStripMenuItem.Size = new Size(143, 22);
+            openToolStripMenuItem.Size = new Size(161, 22);
             openToolStripMenuItem.Text = "Open project";
+            openToolStripMenuItem.Click += openToolStripMenuItem_Click;
             // 
             // saveToolStripMenuItem
             // 
             saveToolStripMenuItem.Name = "saveToolStripMenuItem";
-            saveToolStripMenuItem.Size = new Size(143, 22);
+            saveToolStripMenuItem.Size = new Size(161, 22);
             saveToolStripMenuItem.Text = "Save project";
+            saveToolStripMenuItem.Click += saveToolStripMenuItem_Click;
+            // 
+            // saveProjectAsToolStripMenuItem
+            // 
+            saveProjectAsToolStripMenuItem.Name = "saveProjectAsToolStripMenuItem";
+            saveProjectAsToolStripMenuItem.Size = new Size(161, 22);
+            saveProjectAsToolStripMenuItem.Text = "Save project as...";
+            saveProjectAsToolStripMenuItem.Click += saveProjectAsToolStripMenuItem_Click;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(140, 6);
+            toolStripSeparator1.Size = new Size(158, 6);
             // 
             // editTagsToolStripMenuItem
             // 
             editTagsToolStripMenuItem.Name = "editTagsToolStripMenuItem";
-            editTagsToolStripMenuItem.Size = new Size(143, 22);
+            editTagsToolStripMenuItem.Size = new Size(161, 22);
             editTagsToolStripMenuItem.Text = "Edit tags";
             editTagsToolStripMenuItem.Click += editTagsToolStripMenuItem_Click;
             // 
             // toolStripSeparator2
             // 
             toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(140, 6);
+            toolStripSeparator2.Size = new Size(158, 6);
             // 
             // comissionToolStripMenuItem
             // 
             comissionToolStripMenuItem.Name = "comissionToolStripMenuItem";
-            comissionToolStripMenuItem.Size = new Size(143, 22);
+            comissionToolStripMenuItem.Size = new Size(161, 22);
             comissionToolStripMenuItem.Text = "Comission";
             comissionToolStripMenuItem.Click += comissionToolStripMenuItem_Click;
             // 
@@ -238,16 +251,16 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1300, 581);
+            ClientSize = new Size(1300, 560);
             Controls.Add(splitContainerThumbMain);
             Controls.Add(menuStrip);
             KeyPreview = true;
             MainMenuStrip = menuStrip;
             Name = "MainForm";
             Text = "Image Comissioner";
+            FormClosing += MainForm_FormClosing;
             PreviewKeyDown += MainForm_PreviewKeyDown;
             splitContainerThumbMain.Panel1.ResumeLayout(false);
-            splitContainerThumbMain.Panel1.PerformLayout();
             splitContainerThumbMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainerThumbMain).EndInit();
             splitContainerThumbMain.ResumeLayout(false);
@@ -267,7 +280,6 @@
 
         private SplitContainer splitContainerThumbMain;
         private SplitContainer splitContainerPreviewTags;
-        private FlowLayoutPanel panelThumb;
         private PictureBox pictureBoxPreview;
         private MenuStrip menuStrip;
         private ToolStripMenuItem fiToolStripMenuItem;
@@ -283,5 +295,7 @@
         private ToolStripSeparator toolStripSeparator2;
         private ToolStripMenuItem comissionToolStripMenuItem;
         private Label labelImageName;
+        private ToolStripMenuItem saveProjectAsToolStripMenuItem;
+        private ListView listViewThumb;
     }
 }

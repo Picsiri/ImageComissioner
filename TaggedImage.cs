@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace ImageCommissioner
@@ -12,12 +13,12 @@ namespace ImageCommissioner
         public List<string> Tags { get; private set; }
         public int Index { get; private set; }
 
-        // Constructor to initialize with an image path and optional tags
-        public TaggedImage(string imagePath, int idx, List<string>? initialTags = null)
+        [JsonConstructor]
+        public TaggedImage(string imagePath, List<string> tags, int index)
         {
             ImagePath = imagePath;
-            Index = idx;
-            Tags = initialTags ?? [];
+            Tags = tags;
+            Index = index;
         }
 
         // Method to set (replace) all tags

@@ -57,6 +57,13 @@ namespace ImageComissioner
                 }
             }
         }
+        public static Image GetThumbnail(string path, int size)
+        {
+            using (var img = Image.FromFile(path))
+            {
+                return img.GetThumbnailImage(size, size, () => false, IntPtr.Zero);
+            }
+        }
 
     }
 }
