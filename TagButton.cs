@@ -30,7 +30,7 @@ namespace ImageCommissioner
             IsAllTag = isalltag;
         }
 
-        private void ToggleTag()
+        public void ToggleTag()
         {
             IsSelected = !IsSelected;
             BackColor = IsSelected ? SelectedColor : DeselectedColor;

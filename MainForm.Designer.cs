@@ -31,6 +31,7 @@
             splitContainerThumbMain = new SplitContainer();
             listViewThumb = new ListView();
             splitContainerPreviewTags = new SplitContainer();
+            labelProgress = new Label();
             labelImageName = new Label();
             pictureBoxPreview = new PictureBox();
             panelTag = new TableLayoutPanel();
@@ -109,6 +110,7 @@
             // 
             // splitContainerPreviewTags.Panel1
             // 
+            splitContainerPreviewTags.Panel1.Controls.Add(labelProgress);
             splitContainerPreviewTags.Panel1.Controls.Add(labelImageName);
             splitContainerPreviewTags.Panel1.Controls.Add(pictureBoxPreview);
             // 
@@ -116,10 +118,24 @@
             // 
             splitContainerPreviewTags.Panel2.Controls.Add(panelTag);
             splitContainerPreviewTags.Size = new Size(1039, 536);
-            splitContainerPreviewTags.SplitterDistance = 748;
+            splitContainerPreviewTags.SplitterDistance = 735;
             splitContainerPreviewTags.SplitterWidth = 5;
             splitContainerPreviewTags.TabIndex = 0;
             splitContainerPreviewTags.TabStop = false;
+            // 
+            // labelProgress
+            // 
+            labelProgress.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            labelProgress.AutoSize = true;
+            labelProgress.BackColor = SystemColors.Control;
+            labelProgress.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            labelProgress.Location = new Point(696, 512);
+            labelProgress.MaximumSize = new Size(500, 500);
+            labelProgress.Name = "labelProgress";
+            labelProgress.Size = new Size(37, 21);
+            labelProgress.TabIndex = 2;
+            labelProgress.Text = "X/Y";
+            labelProgress.TextAlign = ContentAlignment.BottomRight;
             // 
             // labelImageName
             // 
@@ -127,7 +143,7 @@
             labelImageName.AutoSize = true;
             labelImageName.BackColor = SystemColors.Control;
             labelImageName.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            labelImageName.Location = new Point(334, 8);
+            labelImageName.Location = new Point(308, 3);
             labelImageName.Name = "labelImageName";
             labelImageName.Size = new Size(142, 21);
             labelImageName.TabIndex = 1;
@@ -140,7 +156,7 @@
             pictureBoxPreview.Dock = DockStyle.Fill;
             pictureBoxPreview.Location = new Point(0, 0);
             pictureBoxPreview.Name = "pictureBoxPreview";
-            pictureBoxPreview.Size = new Size(748, 536);
+            pictureBoxPreview.Size = new Size(735, 536);
             pictureBoxPreview.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxPreview.TabIndex = 0;
             pictureBoxPreview.TabStop = false;
@@ -156,7 +172,7 @@
             panelTag.Name = "panelTag";
             panelTag.RowCount = 1;
             panelTag.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            panelTag.Size = new Size(286, 536);
+            panelTag.Size = new Size(299, 536);
             panelTag.TabIndex = 0;
             // 
             // menuStrip
@@ -261,6 +277,7 @@
             Name = "MainForm";
             Text = "Image Comissioner";
             FormClosing += MainForm_FormClosing;
+            KeyDown += MainForm_KeyDown;
             splitContainerThumbMain.Panel1.ResumeLayout(false);
             splitContainerThumbMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainerThumbMain).EndInit();
@@ -298,5 +315,6 @@
         private Label labelImageName;
         private ToolStripMenuItem saveProjectAsToolStripMenuItem;
         private ListView listViewThumb;
+        private Label labelProgress;
     }
 }

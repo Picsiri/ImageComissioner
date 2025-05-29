@@ -15,6 +15,7 @@ namespace ImageComissioner
         public required bool Zipit { get; set; }
         public required List<string> Tags { get; set; } = [];
         public required TaggedImage[] TaggedImages { get; set; } = [];
+        public int LastEditedImage { get; set; } = 0;
     }
 
 }

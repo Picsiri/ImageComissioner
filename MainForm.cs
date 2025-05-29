@@ -8,6 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text.Json;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -33,6 +34,7 @@ namespace ImageComissioner
         List<int> beingLoaded = [];
 
         TaggedImage? editedImage = null;
+        int lastEditedImageIndex = 0;
 
         String sourcePath = "";
         String destinationPath = "";
@@ -41,7 +43,6 @@ namespace ImageComissioner
 
         int previousThumbPanelWidth = 0;
         int thumbSquare = 0;
-        int activeIndex = 0;
 
         public MainForm()
         {
@@ -106,13 +107,12 @@ namespace ImageComissioner
 
         private void listViewThumb_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
-            Debug.WriteLine($"RetrieveVirtualItem called for index {e.ItemIndex}");
             e.Item = loadingItem;
 
             // Thumbnail is already loaded
             if (_imageCache.TryGetValue(e.ItemIndex, out Image? value)) return;
 
-            e.Item = new ListViewItem($"Image {e.ItemIndex}");
+            e.Item = new ListViewItem();
 
             //if (e.ItemIndex > taggedImages.Length) return;
 
@@ -157,31 +157,32 @@ namespace ImageComissioner
             }
             else
             {
-                g.FillRectangle(SystemBrushes.Window, bounds);
+                g.FillRectangle(SystemBrushes.Control, bounds);
             }
 
             // Draw image
-            if (img != null)
-            {
-                int imgX = bounds.X + (bounds.Width - img.Width) / 2;
-                int imgY = bounds.Y + (bounds.Height - img.Height) / 2;
+            int imgX = bounds.X + (bounds.Width - img.Width) / 2;
+            int imgY = bounds.Y + (bounds.Height - img.Height) / 2;
+            g.DrawImage(img, new Rectangle(imgX, imgY, img.Width, img.Height));
 
-                g.DrawImage(img, new Rectangle(imgX, imgY, img.Width, img.Height));
-            }
-            else
-            {
-                throw new Exception();
-            }
-
-            // Draw text
-            string label = $"Image {index}";
+            // Measure text size
+            string label = $"Image {index + 1}";
             SizeF textSize = g.MeasureString(label, listViewThumb.Font);
-            int textX = bounds.X + (bounds.Width - (int)textSize.Width) / 2;
-            int textY = bounds.Bottom - (int)textSize.Height - 4;
+            int textWidth = (int)textSize.Width;
+            int textHeight = (int)textSize.Height;
 
-            TextRenderer.DrawText(g, label, listViewThumb.Font,
-                new Point(textX, textY),
-                e.Item.Selected ? SystemColors.HighlightText : SystemColors.WindowText);
+            // Calculate text position
+            int textX = bounds.X + (bounds.Width - textWidth) / 2;
+            int textY = bounds.Bottom - textHeight;
+
+            // Draw text background rectangle
+            Rectangle textBackground = new Rectangle(textX, textY, textWidth, textHeight);
+            g.FillRectangle(SystemBrushes.Control, textBackground); // Background color
+
+            // Draw the text on top of the background
+            TextRenderer.DrawText(g, label, listViewThumb.Font, new Point(textX, textY),
+                SystemColors.WindowText);
+
         }
 
         private void ComissionImages()
@@ -249,13 +250,14 @@ namespace ImageComissioner
 
             if (index >= 0 && index < taggedImages.Length)
             {
-                activeIndex = index;
+                lastEditedImageIndex = index;
                 editedImage = taggedImages[index];
                 pictureBoxPreview.Image = Image.FromFile(editedImage.ImagePath);
                 labelImageName.Text = Path.GetFileName(editedImage.ImagePath);
                 labelImageName.Left = (pictureBoxPreview.Width - labelImageName.Width) / 2;
 
-                //listViewThumb.EnsureVisible(activeIndex);
+                labelProgress.Text = $"{lastEditedImageIndex + 1}/{taggedImages.Length}";
+                labelProgress.Left = (pictureBoxPreview.Width - labelProgress.Width) - 5;
 
                 LoadTagsFromEditedImage();
             }
@@ -333,8 +335,9 @@ namespace ImageComissioner
             listViewThumb.VirtualListSize = taggedImages.Length;
         }
 
-        private void ToggleAllTags(TagButton allNoneButton)
+        private void ToggleAllTags()
         {
+            TagButton allNoneButton = (TagButton)panelTag.Controls[0];
             bool selection = allNoneButton.IsSelected;
             foreach (Control control in panelTag.Controls)
             {
@@ -364,7 +367,7 @@ namespace ImageComissioner
             }
 
             TagButton allNoneButton = new TagButton(allNoneText, true);
-            allNoneButton.Click += (s, e) => ToggleAllTags(allNoneButton);
+            allNoneButton.Click += (s, e) => ToggleAllTags();
             panelTag.Controls.Add(allNoneButton);
 
             foreach (string tag in allTags)
@@ -515,7 +518,8 @@ namespace ImageComissioner
                 Recurse = recurse,
                 Zipit = zipit,
                 Tags = allTags,
-                TaggedImages = taggedImages
+                TaggedImages = taggedImages,
+                LastEditedImage = lastEditedImageIndex
             };
 
             string json = JsonSerializer.Serialize(projectData);
@@ -544,12 +548,14 @@ namespace ImageComissioner
                 zipit = projectData.Zipit;
                 allTags = projectData.Tags;
                 taggedImages = projectData.TaggedImages;
+                lastEditedImageIndex = projectData.LastEditedImage;
 
                 listViewThumb.VirtualListSize = taggedImages.Length;
 
                 RegenerateTagButtons();
                 ResizeThumbnails();
-                SetActiveImage(0);
+                SetActiveImage(lastEditedImageIndex);
+                SelectListViewItem();
             }
         }
 
@@ -592,25 +598,62 @@ namespace ImageComissioner
             }
         }
 
+        private void SelectListViewItem()
+        {
+            listViewThumb.SelectedIndices.Clear();
+            listViewThumb.Items[lastEditedImageIndex].Selected = true;
+            listViewThumb.Items[lastEditedImageIndex].Focused = true;
+            listViewThumb.EnsureVisible(lastEditedImageIndex);
+        }
+
         private void listViewThumb_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Left /*|| e.KeyCode == Keys.Up*/)
             {
-                SetActiveImage(activeIndex - 1);
-                listViewThumb.SelectedIndices.Clear();
-                listViewThumb.Items[activeIndex].Selected = true;
-                listViewThumb.Items[activeIndex].Focused = true;
-                listViewThumb.EnsureVisible(activeIndex);
-
+                SetActiveImage(lastEditedImageIndex - 1);
+                SelectListViewItem();
+                e.Handled = true;
+                e.SuppressKeyPress = true; // Prevent beep sound!
             }
             else if (e.KeyCode == Keys.Right /*|| e.KeyCode == Keys.Down*/)
             {
-                SetActiveImage(activeIndex + 1);
-                listViewThumb.SelectedIndices.Clear();
-                listViewThumb.Items[activeIndex].Selected = true;
-                listViewThumb.Items[activeIndex].Focused = true;
-                listViewThumb.EnsureVisible(activeIndex);
+                SetActiveImage(lastEditedImageIndex + 1);
+                SelectListViewItem();
+                e.Handled = true;
+                e.SuppressKeyPress = true; // Prevent beep sound!
+            }
+        }
 
+        private void MainForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            int numberPressed = -1; // Default invalid number
+
+            // Check if the key is a number (top row or numpad)
+            if (e.KeyCode >= Keys.D0 && e.KeyCode <= Keys.D9)
+            {
+                numberPressed = e.KeyCode - Keys.D0; // Convert top row key to int
+            }
+            else if (e.KeyCode >= Keys.NumPad0 && e.KeyCode <= Keys.NumPad9)
+            {
+                numberPressed = e.KeyCode - Keys.NumPad0; // Convert numpad key to int
+            }
+
+            // If a valid number key was pressed, call the function
+            if (numberPressed >= 0)
+            {
+                HandleNumberInput(numberPressed);
+                e.Handled = true;
+                e.SuppressKeyPress = true; // Prevent beep sound!
+            }
+        }
+
+        private void HandleNumberInput(int number)
+        {
+            if(panelTag.Controls.Count > number)
+            {
+                Debug.WriteLine($"Number pressed: {number}");
+                ((TagButton)panelTag.Controls[number]).ToggleTag();
+                if (number == 0) ToggleAllTags();
             }
         }
     }
