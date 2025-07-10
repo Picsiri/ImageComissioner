@@ -10,10 +10,12 @@ namespace ImageCommissioner
 
         public bool IsSelected { get; private set; } = false; // Store selection state
         public bool IsAllTag { get; private set; } = false;
+        public String TagName { get; private set; }
+        private int BaseNumber;
 
         public TagButton(string tagName, bool isalltag = false)
         {
-            Text = tagName;
+            Text = TagName = tagName;
             Font = new Font("Arial", 12, FontStyle.Bold);
             Dock = DockStyle.Fill;
             FlatStyle = FlatStyle.Flat;
@@ -32,21 +34,38 @@ namespace ImageCommissioner
 
         public void ToggleTag()
         {
-            IsSelected = !IsSelected;
-            BackColor = IsSelected ? SelectedColor : DeselectedColor;
+            if (IsSelected)
+            {
+                DeselectTag();
+            }
+            else
+            {
+                SelectTag();
+            }
         }
         public void SelectTag()
         {
             IsSelected = true;
             BackColor = SelectedColor;
+            UpdateText(1);
         }
-
         public void DeselectTag()
         {
             IsSelected = false;
             BackColor = DeselectedColor;
+            UpdateText(0);
         }
-
+        public void SetBaseNumber(int number)
+        {
+            BaseNumber = number;
+        }
+        private void UpdateText(int offset)
+        {
+            if (!IsAllTag)
+            {
+                Text = TagName + " (" + (BaseNumber + offset) + ")";
+            }
+        }
 
         protected override void OnMouseEnter(EventArgs e)
         {

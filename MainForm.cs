@@ -187,60 +187,73 @@ namespace ImageComissioner
 
         private void ComissionImages()
         {
-            if (!Directory.Exists(destinationPath))
-            {
-                Directory.CreateDirectory(destinationPath);
-            }
+            int totalOperations = taggedImages.Sum(img => img.Tags.Count); // total file copies
+            if (zipit) totalOperations += allTags.Count; // include zipping
 
-            // Ensure the tag folder exists
-            foreach (string tag in allTags)
+            using (ProgressForm progressForm = new ProgressForm(this, totalOperations))
             {
-                string tagFolder = Path.Combine(destinationPath, tag);
+                progressForm.Show();
+                int current = 0;
 
-                if (!Directory.Exists(tagFolder))
+                if (!Directory.Exists(destinationPath))
                 {
-                    Directory.CreateDirectory(tagFolder);
+                    Directory.CreateDirectory(destinationPath);
                 }
-            }
 
-            foreach (TaggedImage image in taggedImages)
-            {
-                foreach (string tag in image.Tags)
-                {
-                    string tagFolder = Path.Combine(destinationPath, tag);
-
-                    // Prepare file name & handle clashes
-                    string originalFileName = Path.GetFileNameWithoutExtension(image.ImagePath);
-                    string extension = Path.GetExtension(image.ImagePath);
-                    string destinationFile = Path.Combine(tagFolder, originalFileName + extension);
-
-                    // Handle name clashes by adding a random suffix
-                    Random random = new Random();
-                    while (File.Exists(destinationFile))
-                    {
-                        int randomNumber = random.Next(10, 99); // Generate a random 2-digit number
-                        destinationFile = Path.Combine(tagFolder, $"{originalFileName}_{randomNumber}{extension}");
-                    }
-
-                    try
-                    {
-                        File.Copy(image.ImagePath, destinationFile, false); // Overwrites if exists
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error copying {image.ImagePath}: {ex.Message}");
-                    }
-                }
-            }
-            if (zipit)
-            {
                 foreach (string tag in allTags)
                 {
                     string tagFolder = Path.Combine(destinationPath, tag);
-                    string zipFilePath = Path.Combine(destinationPath, $"{tag}.zip");
-                    ZipFile.CreateFromDirectory(tagFolder, zipFilePath);
-                    //Directory.Delete(tagFolder, true);
+                    if (!Directory.Exists(tagFolder))
+                    {
+                        Directory.CreateDirectory(tagFolder);
+                    }
                 }
+
+                foreach (TaggedImage image in taggedImages)
+                {
+                    foreach (string tag in image.Tags)
+                    {
+                        string tagFolder = Path.Combine(destinationPath, tag);
+                        string originalFileName = Path.GetFileNameWithoutExtension(image.ImagePath);
+                        string extension = Path.GetExtension(image.ImagePath);
+                        string destinationFile = Path.Combine(tagFolder, originalFileName + extension);
+
+                        Random random = new Random();
+                        while (File.Exists(destinationFile))
+                        {
+                            int randomNumber = random.Next(10, 99);
+                            destinationFile = Path.Combine(tagFolder, $"{originalFileName}_{randomNumber}{extension}");
+                        }
+
+                        try
+                        {
+                            File.Copy(image.ImagePath, destinationFile, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error copying {image.ImagePath}: {ex.Message}");
+                        }
+
+                        current++;
+                        progressForm.UpdateProgress(current, $"Copying {Path.GetFileName(image.ImagePath)} to {tag}");
+                    }
+                }
+
+                if (zipit)
+                {
+                    foreach (string tag in allTags)
+                    {
+                        string tagFolder = Path.Combine(destinationPath, tag);
+                        string zipFilePath = Path.Combine(destinationPath, $"{tag}.zip");
+                        ZipFile.CreateFromDirectory(tagFolder, zipFilePath);
+
+                        current++;
+                        progressForm.UpdateProgress(current, $"Zipping {tag}");
+                    }
+                }
+
+                progressForm.UpdateProgress(totalOperations, "Done.");
+                Thread.Sleep(500); // allow user to see "Done."
             }
         }
 
@@ -275,7 +288,7 @@ namespace ImageComissioner
                 {
                     if (button.IsSelected && !button.IsAllTag)
                     {
-                        editedImage.Tags.Add(button.Text.Trim()); // Add new tag
+                        editedImage.Tags.Add(button.TagName.Trim()); // Add new tag
                     }
                 }
             }
@@ -287,24 +300,30 @@ namespace ImageComissioner
             int selectedTags = 0;
             TagButton? allTagButton = null;
 
+            var tagCounts = CountTags();
+
             foreach (Control control in panelTag.Controls)
             {
                 if (control is TagButton button)
                 {
-                    if (editedImage!.Tags.Contains(button.Text))
+                    // If this button is the "All" tag button, update its state
+                    if (button.IsAllTag)
                     {
+                        button.DeselectTag();
+                        allTagButton = button;
+                        continue;
+                    }
+
+                    if (editedImage!.Tags.Contains(button.TagName))
+                    {
+                        button.SetBaseNumber(tagCounts[button.TagName] - 1);
                         button.SelectTag();
                         selectedTags++;
                     }
                     else
                     {
+                        button.SetBaseNumber(tagCounts[button.TagName]);
                         button.DeselectTag();
-                    }
-
-                    // If this button is the "All" tag button, update its state
-                    if (button.IsAllTag)
-                    {
-                        allTagButton = button;
                     }
                 }
             }
@@ -656,5 +675,31 @@ namespace ImageComissioner
                 if (number == 0) ToggleAllTags();
             }
         }
+
+        private Dictionary<string, int> CountTags()
+        {
+            Dictionary<string, int> tagCounts = new Dictionary<string, int>();
+
+            // Initialize the dictionary with all tags and 0 counts
+            foreach (string tag in allTags)
+            {
+                tagCounts[tag] = 0;
+            }
+
+            // Count occurrences
+            foreach (TaggedImage image in taggedImages)
+            {
+                foreach (string tag in allTags)
+                {
+                    if (image.Tags.Contains(tag))
+                    {
+                        tagCounts[tag]++;
+                    }
+                }
+            }
+
+            return tagCounts;
+        }
+
     }
 }
